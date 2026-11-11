@@ -1,0 +1,34 @@
+NEXUS - Instalador (lanzador liviano)
+=======================================
+
+Que hace
+--------
+Prepara NEXUS en UNA carpeta sin que tengas que instalar Python:
+  1) Python 3.14 portable (embebido, de python.org) + pip
+  2) El codigo de NEXUS (desde GitHub)
+  3) Las librerias: numpy, scipy, soundfile, sounddevice, librosa, PySide6
+     (en libs\py314, donde NEXUS las busca)
+Despues crea accesos directos (Escritorio y menu Inicio) y abre NEXUS.
+Si ya esta todo instalado, abre NEXUS directo, sin ventana.
+
+Probarlo (sin armar el .exe)
+----------------------------
+  Doble clic en  "Instalar NEXUS.bat"   (el unico archivo que se ve; el resto esta en la carpeta _archivos)
+  Se instala en  %LOCALAPPDATA%\NEXUS  (NO toca tu carpeta Desktop\NEXUS).
+  La primera vez baja unos 600 MB - 1 GB: tarda varios minutos.
+
+Armar el .exe
+-------------
+  Dentro de _archivos: doble clic en  Construir_exe.bat   ->  queda  _archivos\dist\NEXUS-Setup.exe  (unos 10-15 MB)
+  Ese .exe es el que se sube a GitHub en "Releases" (no dentro del repositorio).
+
+Opciones (se agregan al final del comando o del acceso directo)
+---------------------------------------------------------------
+  --portable        instala en una carpeta "NEXUS" junto al instalador (tambien si existe portable.txt)
+  --carpeta RUTA    instala en esa carpeta
+  --actualizar      vuelve a bajar el codigo de NEXUS desde GitHub (no toca datos, libs ni config)
+  --ventana         muestra la ventana aunque ya este todo instalado
+
+Quitar la prueba
+----------------
+  _archivos\Quitar_prueba.bat   (borra %LOCALAPPDATA%\NEXUS y los accesos directos)

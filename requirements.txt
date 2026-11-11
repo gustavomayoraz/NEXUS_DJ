@@ -1,0 +1,6 @@
+PySide6-Essentials
+numpy
+scipy
+librosa
+soundfile
+sounddevice

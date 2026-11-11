@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+datos/
+libs/
+config/
+*.log
+.venv/
+venv/
+
+respaldo_*/
+instalador/NEXUS-Setup.exe
