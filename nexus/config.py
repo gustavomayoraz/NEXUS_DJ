@@ -60,7 +60,6 @@ IDEAS_MEZCLA = {
     "i_voces": ("Voces por frases: el relevo de voz se hace en un hueco de voz de A y se prefieren fusiones con ese hueco", True),
     "i_gustos": ("Aprender de mis gustos: aparecen 👍/👎 junto a ⚡ para votar cada mezcla y NEXUS ajusta las posturas a mi estilo", True),
     "i_puentes": ("Puentes: si dos temas no combinan (tempos muy distintos o armonía y voces que chocan), usa filtro y eco en vez de forzar la fusión", True),
-    "i_arco": ("Arco del set: el orden de la cola sigue una curva de energía (arranca sereno, sube hasta un pico, respira y cierra arriba)", True),
 }
 for _k in IDEAS_MEZCLA:
     AJUSTES_MEZCLA[_k] = 0.0

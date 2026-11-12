@@ -452,7 +452,7 @@ class VentanaNexus(QMainWindow):
                     fijas, pistas = fijas + pistas[:2], pistas[2:]
         datos = [{"bpm": (p.analisis.bpm if p.analisis else None), "cam": (p.analisis.camelot if p.analisis else None), "nombre": p.nombre,
                   "en": self._energia_tema(p)} for p in pistas]
-        idx = orden_cola(datos, arco=float(self.motor.ajustes.get("i_arco", 0.0)) >= 0.5)
+        idx = orden_cola(datos)
         nuevas = fijas + [pistas[i] for i in idx]
         if [id(p) for p in nuevas] == [id(p) for p in self.lista.pistas()]:
             return
@@ -523,7 +523,6 @@ class VentanaNexus(QMainWindow):
 
     def _aplicar_ajustes(self, aj: dict, indice_largo: int) -> None:
         """Guarda los ajustes y rehace las fusiones que todavía no suenan (la que está sonando no se toca)."""
-        cambia_arco = float(aj.get("i_arco", 0.0)) != float(self.motor.ajustes.get("i_arco", 0.0))
         self.motor.ajustes = dict(aj)
         self._ver_votos()
         self.cfg["mezcla"] = dict(aj)
@@ -532,8 +531,6 @@ class VentanaNexus(QMainWindow):
         else:
             self.motor.invalidar_fusiones()
         self._guardar()
-        if cambia_arco:
-            self._ordenar_lista(forzar=True)                           # al tildar o destildar «Arco del set» la cola se reordena
 
     def _cambio_largo(self, i: int) -> None:
         self.motor.largos = LARGOS[i][1]
