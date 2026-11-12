@@ -13,6 +13,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 from scipy import signal
+from scipy.ndimage import minimum_filter1d, uniform_filter1d
 from scipy.interpolate import PchipInterpolator
 
 from . import capas as _capas
@@ -64,6 +65,30 @@ def limitador(x: np.ndarray, umbral: float = 0.92) -> np.ndarray:
     exceso = np.maximum(a - umbral, 0.0)
     sal = np.where(a > umbral, np.sign(x) * (umbral + (1 - umbral) * np.tanh(exceso / (1 - umbral))), x)
     return sal.astype(np.float32)
+
+
+def limitar_mezcla(x: np.ndarray, techo: float = 0.90, extremos: float = 0.5) -> np.ndarray:
+    """Limitador de la fusión que baja el VOLUMEN (no deforma la onda): cuando la suma de los dos temas pasa el techo, calcula cuánto
+    hay que bajar y lo hace con una curva suave que se anticipa al pico (40 ms antes y después). Así los graves, medios y agudos no se
+    saturan (un recorte sobre la forma de onda mete distorsión, sobre todo en los graves). Los `extremos` (segundos del principio y del
+    final) no se tocan: ahí la mezcla es idéntica al tema solo y tiene que empalmar sin saltos. Al final queda el limitador suave de
+    siempre como red de seguridad."""
+    x = np.asarray(x, np.float32)
+    n = x.shape[1]
+    if n < 8:
+        return limitador(x)
+    pico = np.abs(x).max(axis=0)                                      # estéreo ligado: los dos canales bajan igual
+    necesita = np.minimum(1.0, techo / np.maximum(pico, 1e-9)).astype(np.float32)
+    if float(necesita.min()) >= 0.9999:
+        return limitador(x)
+    h = max(2, int(0.040 * SR))
+    g = minimum_filter1d(necesita, size=2 * h + 1, mode="nearest")      # la bajada llega completa ANTES del pico y dura después
+    g = uniform_filter1d(g, size=2 * h + 1, mode="nearest")             # curva suave (nunca por encima de lo necesario en el pico)
+    ext = min(int(extremos * SR), n // 4)
+    if ext > 0:
+        rampa = np.minimum(1.0, np.minimum(np.arange(n), n - 1 - np.arange(n)) / float(ext)).astype(np.float32)
+        g = 1.0 + (g - 1.0) * rampa
+    return limitador(x * g[None, :].astype(np.float32))
 
 
 def _suavizado(t: np.ndarray) -> np.ndarray:
@@ -509,7 +534,7 @@ def renderizar(A: Analisis, audio_a: np.ndarray, B: Analisis, audio_b: np.ndarra
     corr_db = signal.fftconvolve(corr_db, np.ones(int(0.8 * SR)) / int(0.8 * SR), mode="same")
     taper = np.minimum(1.0, np.minimum(np.arange(Nout), Nout - 1 - np.arange(Nout)) / max(1, borde)).astype(np.float32)
     mezcla = mezcla * (10 ** (corr_db * taper / 20)).astype(np.float32)[None, :]
-    mezcla = limitador(mezcla)
+    mezcla = limitar_mezcla(mezcla)
 
     # --- datos para la visualización (a 50 cuadros por segundo)
     avance(0.93, "Preparando visualización…")
@@ -609,7 +634,7 @@ def _renderizar_natural(A, audio_a, B, audio_b, plan, ajustes, src_a, src_b, a_i
     corr_db = np.clip(objetivo - db_m, -4.0, 3.0)
     corr_db = signal.fftconvolve(corr_db, np.ones(int(0.8 * SR)) / int(0.8 * SR), mode="same")
     taper = np.minimum(1.0, np.minimum(np.arange(Nout), Nout - 1 - np.arange(Nout)) / max(1, borde)).astype(np.float32)
-    mezcla = limitador(mezcla * (10 ** (corr_db * taper / 20)).astype(np.float32)[None, :])
+    mezcla = limitar_mezcla(mezcla * (10 ** (corr_db * taper / 20)).astype(np.float32)[None, :])
 
     avance(0.93, "Preparando visualización…")
     viz_b, viz_g, viz_n = _viz_natural(ba, bb, gan, nombres, lin_a, lin_b, ca, cb, Nout)
@@ -691,7 +716,7 @@ def _renderizar_puente(A: Analisis, audio_a, B: Analisis, audio_b, plan: Plan, a
     fb = max(8, int(0.008 * SR))
     g_b = np.clip((n - ti) / fb, 0.0, 1.0).astype(np.float32)
     cb = xb_f * g_b[None, :] * (10 ** (B.ganancia_db / 20))
-    mezcla = limitador(ca + cb)
+    mezcla = limitar_mezcla(ca + cb)
     # --- visualización
     avance(0.8, "Preparando visualización…")
     lin_a, lin_b = 10 ** (A.ganancia_db / 20), 10 ** (B.ganancia_db / 20)
@@ -955,7 +980,7 @@ def fusion_simple(audio_a: np.ndarray, gan_a: float, audio_b: np.ndarray, gan_b:
     nombres = ("graves", "cuerpo", "presencia", "brillo")
     ca = sum(ba[i] * gan[("A", nm)] for i, nm in enumerate(nombres)) * gan_a
     cb = sum(bb[i] * gan[("B", nm)] for i, nm in enumerate(nombres)) * gan_b
-    mezcla = limitador(ca + cb)
+    mezcla = limitar_mezcla(ca + cb)
     viz_b, viz_g, viz_n = _viz_natural(ba, bb, gan, nombres, gan_a, gan_b, ca, cb, n)
     L = max(1, int(round(seg / (4 * 60.0 / bpm))))
     plan = Plan(a0=0, b0=0, L=L, k=1.0, shift=0.0, modo="limpia", puntaje=0.0, armonia=0.0, razon="cruce simple (la fusión no estaba lista)")
@@ -1015,7 +1040,7 @@ def _viz(ren_a, ren_b, gan, lin_a, lin_b, ra, rb, dr, Nout):
 
 
 # ------------------------------------------------------------------------------------------- guardado en la base de datos
-VERSION_FUSION = 6                         # súbela si cambia el algoritmo de fusión (las guardadas con otra versión se ignoran)
+VERSION_FUSION = 7                         # súbela si cambia el algoritmo de fusión (las guardadas con otra versión se ignoran)
 
 
 def empaquetar(f: Fusion) -> bytes:

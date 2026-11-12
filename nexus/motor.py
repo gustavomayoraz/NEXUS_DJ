@@ -968,7 +968,7 @@ class Motor:
             t_entra = A.tiempo_compas(pl.a0)
             if t_entra < pos + 3.0:                          # ya pasó (o no da tiempo de cargarla)
                 continue
-            if t_entra > pos + 45.0:                         # demasiado lejos: mejor calcular una más cercana
+            if t_entra > pos + 30.0:                         # demasiado lejos: mejor calcular una más cercana
                 break
             firma = basedatos.firma_fusion(asdict(pl), aj, VERSION_FUSION)
             if not basedatos.existe_fusion(ca, cb, firma):
@@ -1100,9 +1100,9 @@ class Motor:
         plan = None
         est = self._t_ya_nat
         for _ in range(2):
-            t_min = pos + (est * 1.3 + 6.0) * (1.0 + 0.4 * intento)
+            t_min = pos + (est * 1.15 + 3.5) * (1.0 + 0.4 * intento)     # lo justo para calcularla: la mezcla entra lo más pegada posible al pedido
             k0 = int(np.searchsorted(tiempos, t_min))
-            plan = planificar(A, B, (8,), a_desde=k0, estructura=self._est(), voces=self._vz()) or planificar(A, B, (4,), a_desde=k0, estructura=self._est(), voces=self._vz())
+            plan = planificar(A, B, (8,), a_desde=k0, estructura=self._est(), voces=self._vz(), cerca=True) or planificar(A, B, (4,), a_desde=k0, estructura=self._est(), voces=self._vz(), cerca=True)
             if plan is None:
                 return None
             nuevo = self._est_ya(A, B, plan)

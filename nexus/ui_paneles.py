@@ -159,20 +159,12 @@ class TarjetaDeck(QWidget):
             p.setClipRect(QRectF(ox, oy, ow * frac, oh))
             p.drawPixmap(ox, oy, vivo)
             p.restore()
-            for s0, s1, tipo_m in d.get("marcas", ()):                                 # dónde está programado el enganche en este tema
+            for s0, _s1, _tipo in d.get("marcas", ()):                                  # línea roja: dónde empieza la mezcla en este tema
                 if a.duracion <= 0:
                     break
                 x0 = ox + ow * max(0.0, min(1.0, s0 / a.duracion))
-                x1 = ox + ow * max(0.0, min(1.0, s1 / a.duracion))
-                cm = T.AMBAR if tipo_m == "sale" else T.VERDE
-                p.setPen(Qt.PenStyle.NoPen)
-                p.setBrush(T.con_alfa(cm, 0.22))
-                p.drawRect(QRectF(x0, oy, max(2.0, x1 - x0), oh))
-                p.setPen(QPen(T.con_alfa(cm, 0.95), 1.6))
-                p.drawLine(QPointF(x0, oy - 4), QPointF(x0, oy + oh))
-                p.drawLine(QPointF(x1, oy), QPointF(x1, oy + oh + 4))
-                p.setFont(T.fuente(9, 700))
-                p.drawText(QRectF(x0 + 3, oy - 1, 60, 12), Qt.AlignmentFlag.AlignLeft, "enganche" if tipo_m == "sale" else "entra")
+                p.setPen(QPen(QColor("#ff2d3d"), 2.2))
+                p.drawLine(QPointF(x0, oy - 6), QPointF(x0, oy + oh + 6))
             xp = ox + ow * frac
             T.brillo_linea(p, (QPointF(xp, oy - 2), QPointF(xp, oy + oh + 2)), T.BLANCO, 1.4, 0.8)
             p.setFont(T.fuente(11, 600))

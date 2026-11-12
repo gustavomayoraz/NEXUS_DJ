@@ -676,33 +676,18 @@ class VentanaNexus(QMainWindow):
         pistas = m.pistas
 
         def marcas(idx, rol=""):
-            """Rango (segundos del tema) del enganche que le corresponde a ese deck: si está sonando, el que sale hacia el siguiente;
-            si todavía no sonó, el que entra desde el anterior. El resto de la onda queda libre para moverse con el mouse."""
+            """Segundo del tema donde empieza la mezcla hacia el siguiente (la línea roja del deck): cuando la línea blanca la toca, se mezcla."""
             res = []
-            if not (0 <= idx < len(pistas)):
+            if not (0 <= idx < len(pistas)) or idx + 1 >= len(pistas):
                 return res
-            if rol == "SALIENDO":
-                quiere = "sale"
-            elif rol == "ENTRANDO":
-                quiere = "entra"
-            else:
-                quiere = "sale" if idx <= m._indice_actual() else "entra"
-            for a, b, tipo_m in ((idx, idx + 1, "sale"), (idx - 1, idx, "entra")):
-                if tipo_m != quiere:
-                    continue
-                if a < 0 or b >= len(pistas):
-                    continue
-                f = m._ya.get((pistas[a].id, pistas[b].id))
-                if f is None:
-                    f = m.fusiones.get((pistas[a].id, pistas[b].id))
-                if not hasattr(f, "a_inicio"):
-                    f = m._hist.get((pistas[a].id, pistas[b].id))
-                if not hasattr(f, "a_inicio"):
-                    continue
-                if tipo_m == "sale":
-                    res.append((f.a_inicio / SR, (f.a_inicio + f.n) / SR, tipo_m))
-                else:
-                    res.append((max(0.0, (f.b_continua - f.n) / SR), f.b_continua / SR, tipo_m))
+            a, b = idx, idx + 1
+            f = m._ya.get((pistas[a].id, pistas[b].id))
+            if f is None:
+                f = m.fusiones.get((pistas[a].id, pistas[b].id))
+            if not hasattr(f, "a_inicio"):
+                f = m._hist.get((pistas[a].id, pistas[b].id))
+            if hasattr(f, "a_inicio"):
+                res.append((f.a_inicio / SR, (f.a_inicio + f.n) / SR, "sale"))
             return res
 
         def poner(pista, idx, rol, pos, niv, gan, activo, siglas=None):

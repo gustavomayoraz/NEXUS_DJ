@@ -76,16 +76,19 @@ def _sale_desde(X: Analisis, largos: tuple[int, ...]) -> int:
 
 
 def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forzar: dict | None = None,
-               a_desde: int | None = None, estructura: bool = False, voces: bool = False, inicio: float | None = None) -> Plan | None:
+               a_desde: int | None = None, estructura: bool = False, voces: bool = False, inicio: float | None = None,
+               cerca: bool = False) -> Plan | None:
     """Devuelve el mejor Plan de fusión de A hacia B.
 
     Con `a_desde` (compás de A), la fusión tiene que empezar en ese compás o después (se prefiere lo más cercano):
     sirve para mezclar "desde donde va" el tema. Si no queda lugar para ninguna fusión, devuelve None.
+    Con `cerca` (solo junto a `a_desde`, para el ⚡), la mezcla se busca lo más pegada posible a ese compás (unos 12 compases como mucho), sin exigir
+    el solo mínimo previo: el usuario pidió mezclar ya.
     Con `inicio` (0..1), la fusión empieza en ese punto de A (por ejemplo 0.5 = a la mitad del tema), con un margen de ±4 compases
     para caer en una frase.
     Con `estructura`, además se premia que la fusión empiece y termine en cambios de sección y se castiga pisar un estribillo con otro."""
     nA, nB = A.n_compases, B.n_compases
-    if a_desde is not None:                                           # ⚡ mezcla rápida: aun así A tiene que terminar de entrar y sonar solo un rato
+    if a_desde is not None and not cerca:                             # mezcla rápida (no ⚡): aun así A tiene que terminar de entrar y sonar solo un rato
         aud_a = np.where(A.energia > 0.06)[0]
         a_desde = max(int(a_desde), (int(aud_a[0]) if len(aud_a) else 0) + int(np.ceil(_tope_L(A, (16, 8)) * 1.25)) + SOLO_MIN + 4)
     k = _factor_tempo(A.bpm, B.bpm)
@@ -106,15 +109,22 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
         cum_fB = np.concatenate([[0], np.cumsum(estB.fuerte)])
     obj_a = obj_b = None
     if inicio is not None and a_desde is None:
-        def _obj(X, nX):                                            # el punto elegido; si no le deja tiempo cómodo de solo al tema, suena casi entero
-            v = int(round(float(inicio) * nX))
-            return v if v >= _sale_desde(X, largos) else nX
+        def _obj(X, nX):                                            # el punto que eligió el usuario (20 % … 100 %): se respeta tal cual, 100 % = el tema suena entero
+            return max(8, int(round(float(inicio) * nX)))
         obj_a, obj_b = _obj(A, nA), _obj(B, nB)
     tope_B = _tope_L(B, largos)
     tope_A = _tope_L(A, largos)
     sale_B = _sale_desde(B, largos)
     mejor: tuple | None = None
-    for L in largos:
+    largos_it = largos
+    if obj_b is not None:                                          # con «dónde empieza la mezcla»: B tiene que terminar de entrar (y sonar solo) antes de su propia salida;
+        todos = sorted(set(largos) | {8, 4}, reverse=True)         # si la fusión pedida no entra en ese espacio, se usa una más corta para respetar el punto elegido
+        caben = [L for L in todos if b_min + max(1, int(round(L / k))) + SOLO_MIN + 4 <= obj_b]
+        if caben:
+            largos_it = tuple(L for L in largos if L in caben) or (caben[0],)
+        else:
+            largos_it = (min(todos),)
+    for L in largos_it:
         Lb = max(1, int(round(L / k)))
         if a_desde is None and (L > tope_B or L > tope_A):                       # B es corto: con esta fusión no le queda lugar para sonar solo
             continue
@@ -124,7 +134,7 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
         a_fin = min(A.ultimo_compas - L, nA - L - 2)
         obj = None
         if a_desde is not None:
-            a_fin = min(a_fin, a_ini + 32)                         # cerca de donde va: no más de ~32 compases adelante
+            a_fin = min(a_fin, a_ini + (12 if cerca else 32))      # cerca de donde va: ⚡ no más de ~12 compases adelante, el resto ~32
         elif obj_a is not None and a_fin >= 0:                     # el usuario eligió dónde empieza la mezcla: ±4 compases alrededor de ese punto
             obj = int(min(max(0, obj_a), a_fin))
             a_ini, a_fin = max(0, obj - 4), min(a_fin, obj + 4)
@@ -168,7 +178,7 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
         elif a_desde is None:
             pos_a = 1.0 * (ia / nA)[:, None] + np.zeros((1, len(ib)))
         else:                                                      # lo más cerca posible del punto actual
-            pos_a = -0.08 * (ia - a_ini)[:, None] + np.zeros((1, len(ib)))
+            pos_a = -(0.15 if cerca else 0.08) * (ia - a_ini)[:, None] + np.zeros((1, len(ib)))
         pos_b0 = 0.5 * (b_min == ib)[None, :] + np.zeros((len(ia), 1))
         fr_a = 0.6 * (((ia - pa) % 8) == 0)[:, None] + np.zeros((1, len(ib)))
         fr_b = 0.5 * (((ib - pb) % 8) == 0)[None, :] + np.zeros((len(ia), 1))
