@@ -142,6 +142,27 @@ class DialogoAjustes(QDialog):
         n.setStyleSheet("color:#7f8bb0; font-size:11px;")
         lay.addWidget(n)
 
+        fila_i = QHBoxLayout()
+        ti0 = QLabel("Dónde empieza la mezcla")
+        ti0.setStyleSheet("font-weight:700;")
+        self.sl_ini = QSlider(Qt.Orientation.Horizontal)
+        self.sl_ini.setRange(0, 100)
+        self.sl_ini.setMinimumWidth(220)
+        self.val_ini = QLabel()
+        self.val_ini.setMinimumWidth(64)
+        self.val_ini.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.val_ini.setStyleSheet("font-weight:800; color:#ffd166;")
+        self.sl_ini.valueChanged.connect(self._mover_inicio)
+        fila_i.addWidget(ti0, 1)
+        fila_i.addWidget(self.sl_ini)
+        fila_i.addWidget(self.val_ini)
+        lay.addLayout(fila_i)
+        ni = QLabel("En qué punto de cada tema empieza la mezcla con el siguiente. Con 50 %, todos los temas empiezan a mezclarse a la mitad "
+                    "(con unos compases de margen para caer en una frase). En «Auto» (0) NEXUS elige el mejor punto de cada par.")
+        ni.setWordWrap(True)
+        ni.setStyleSheet("color:#7f8bb0; font-size:11px;")
+        lay.addWidget(ni)
+
         fila_p = QHBoxLayout()
         tp = QLabel("Postura de la mezcla")
         tp.setStyleSheet("font-weight:700;")
@@ -208,6 +229,9 @@ class DialogoAjustes(QDialog):
         lay.addLayout(botones)
         self.poner(ajustes)
 
+    def _mover_inicio(self, v: int) -> None:
+        self.val_ini.setText("Auto" if v <= 0 else f"{v} %")
+
     def _auto_cambio(self, *_a) -> None:
         """En automática se ocultan los controles que decide NEXUS (el congelado depende del usuario, no del par)."""
         auto = self.combo_auto.currentIndex() == 0
@@ -239,6 +263,8 @@ class DialogoAjustes(QDialog):
         self.combo_motor.setCurrentIndex(max(0, self.combo_motor.findData(aj.get("motor", "natural"))))
         for k, cb in self.ideas.items():
             cb.setChecked(float(aj.get(k, 0.0)) >= 0.5)
+        self.sl_ini.setValue(int(round(float(aj.get("inicio_pct", 0.0)))))
+        self._mover_inicio(self.sl_ini.value())
         self.f_pausa.poner(aj["pausa"])
         self.f_voz.poner(aj["voz_rampa"])
         self.f_bajo.poner(aj.get("bajo_rampa", AJUSTES_MEZCLA["bajo_rampa"]))
@@ -246,7 +272,7 @@ class DialogoAjustes(QDialog):
         self._auto_cambio()
 
     def valores(self) -> dict:
-        return dict(auto=1.0 if self.combo_auto.currentIndex() == 0 else 0.0, motor=self.combo_motor.currentData(), pausa=self.f_pausa.valor(), rampa_in=0.0, rampa_out=0.0, voz_rampa=self.f_voz.valor(), bajo_rampa=self.f_bajo.valor(), congelar=self.f_cong.valor(), **{k: (1.0 if cb.isChecked() else 0.0) for k, cb in self.ideas.items()})
+        return dict(auto=1.0 if self.combo_auto.currentIndex() == 0 else 0.0, motor=self.combo_motor.currentData(), pausa=self.f_pausa.valor(), rampa_in=0.0, rampa_out=0.0, voz_rampa=self.f_voz.valor(), bajo_rampa=self.f_bajo.valor(), congelar=self.f_cong.valor(), inicio_pct=float(self.sl_ini.value()), **{k: (1.0 if cb.isChecked() else 0.0) for k, cb in self.ideas.items()})
 
     def _compases(self) -> int:
         tupla = self._largos[self.combo.currentIndex()][1]

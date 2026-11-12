@@ -50,6 +50,7 @@ AJUSTES_MEZCLA = {
     "voz_rampa": 2.0,      # segundos que dura el relevo de las voces (las voces de A y B nunca suenan juntas)
     "bajo_rampa": 1.0,     # segundos que dura el cruce del bajo (cae en la mitad de la pausa, sobre una línea de compás)
     "congelar": 5.0,       # segundos que los faders quedan quietos cuando el cursor toca la línea blanca punteada (0 = no congelar)
+    "inicio_pct": 0.0,     # % del tema donde empieza la mezcla con el siguiente, en todos los temas (0 = Auto: NEXUS elige el mejor punto de cada par)
 }
 # Ideas de mezcla que el usuario puede ir sumando con un tilde (1 = activa). Las que dicen False todavía no están programadas.
 IDEAS_MEZCLA = {
@@ -63,7 +64,7 @@ IDEAS_MEZCLA = {
 }
 for _k in IDEAS_MEZCLA:
     AJUSTES_MEZCLA[_k] = 0.0
-LIMITES_AJUSTES = {"pausa": (0.0, 20.0), "rampa_in": (0.0, 30.0), "rampa_out": (0.0, 30.0), "voz_rampa": (0.5, 10.0), "bajo_rampa": (0.5, 8.0), "congelar": (0.0, 10.0)}
+LIMITES_AJUSTES = {"pausa": (0.0, 20.0), "rampa_in": (0.0, 30.0), "rampa_out": (0.0, 30.0), "voz_rampa": (0.5, 10.0), "bajo_rampa": (0.5, 8.0), "congelar": (0.0, 10.0), "inicio_pct": (0.0, 100.0)}
 
 
 def ajustes_mezcla(cfg: dict | None = None) -> dict:

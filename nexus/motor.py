@@ -360,6 +360,14 @@ class Motor:
         """¿Está tildada la idea «voces por frases»?"""
         return float(self.ajustes.get("i_voces", 0.0)) >= 0.5
 
+    def _ini(self) -> float | None:
+        """Dónde empieza la mezcla en todos los temas (0..1), o None si está en Auto."""
+        try:
+            v = float(self.ajustes.get("inicio_pct", 0.0))
+        except (TypeError, ValueError):
+            return None
+        return v / 100.0 if v > 0.0 else None
+
     def _est(self) -> bool:
         """¿Está tildada la idea «mezclar por estructura»?"""
         return float(self.ajustes.get("i_estructura", 0.0)) >= 0.5
@@ -492,7 +500,7 @@ class Motor:
         if gen != self._gen or self._cerrando:
             return
         try:
-            plan = planificar(A, B, self.largos, estructura=self._est(), voces=self._vz())
+            plan = planificar(A, B, self.largos, estructura=self._est(), voces=self._vz(), inicio=self._ini())
             self.planes[clave] = plan
             ca, cb = basedatos.clave_tema(ruta_a), basedatos.clave_tema(ruta_b)
             if ca is None or cb is None:
