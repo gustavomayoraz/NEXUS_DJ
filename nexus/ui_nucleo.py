@@ -39,7 +39,7 @@ class Nucleo(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.est = EstadoNucleo()
-        self.setMinimumSize(420, 420)
+        self.setMinimumSize(150, 150)
         rng = np.random.default_rng(7)
         self._estrellas = rng.random((150, 4))                                # x, y, fase, brillo
         n = 190

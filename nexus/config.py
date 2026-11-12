@@ -49,7 +49,7 @@ AJUSTES_MEZCLA = {
     "motor": "natural",    # "natural": mezcla el audio original de los dos temas | "capas": separa en batería/bajo/voz/ambiente (experimental)
     "voz_rampa": 2.0,      # segundos que dura el relevo de las voces (las voces de A y B nunca suenan juntas)
     "bajo_rampa": 1.0,     # segundos que dura el cruce del bajo (cae en la mitad de la pausa, sobre una línea de compás)
-    "congelar": 5.0,       # segundos que los faders quedan quietos cuando el cursor toca la línea blanca punteada (0 = no congelar)
+    "congelar": 2.0,       # segundos que los faders quedan quietos cuando el cursor toca la línea blanca punteada (0 = no congelar)
     "inicio_pct": 0.0,     # % del tema donde empieza la mezcla con el siguiente, en todos los temas (0 = Auto: NEXUS elige el mejor punto de cada par)
 }
 # Ideas de mezcla que el usuario puede ir sumando con un tilde (1 = activa). Las que dicen False todavía no están programadas.
@@ -62,7 +62,7 @@ IDEAS_MEZCLA = {
     "i_puentes": ("Puentes: si dos temas no combinan (tempos muy distintos o armonía y voces que chocan), usa filtro y eco en vez de forzar la fusión", True),
 }
 for _k in IDEAS_MEZCLA:
-    AJUSTES_MEZCLA[_k] = 0.0
+    AJUSTES_MEZCLA[_k] = 1.0 if IDEAS_MEZCLA[_k][1] else 0.0          # por defecto, todas las ideas ya programadas vienen tildadas
 LIMITES_AJUSTES = {"pausa": (0.0, 20.0), "rampa_in": (0.0, 30.0), "rampa_out": (0.0, 30.0), "voz_rampa": (0.5, 10.0), "bajo_rampa": (0.5, 8.0), "congelar": (0.0, 10.0), "inicio_pct": (0.0, 100.0)}
 
 

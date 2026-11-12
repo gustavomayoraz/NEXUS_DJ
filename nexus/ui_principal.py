@@ -71,7 +71,7 @@ class Logo(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setFixedHeight(54)
-        self.setMinimumWidth(470)
+        self.setMinimumWidth(330)
 
     def paintEvent(self, _e) -> None:
         p = QPainter(self)
@@ -186,7 +186,7 @@ class VentanaNexus(QMainWindow):
         self.timer.start(16)
         pantalla = QApplication.primaryScreen().availableGeometry()
         self.resize(min(1560, int(pantalla.width() * 0.96)), min(960, int(pantalla.height() * 0.94)))
-        self.setMinimumSize(1100, 680)
+        self.setMinimumSize(900, 640)
 
     # ------------------------------------------------------------------------------ construcción
     def _armar(self) -> None:
@@ -223,7 +223,8 @@ class VentanaNexus(QMainWindow):
 
         # ---- cola (izquierda)
         izq = Vidrio()
-        izq.setFixedWidth(392)
+        izq.setMinimumWidth(250)
+        izq.setMaximumWidth(392)
         li = QVBoxLayout(izq)
         li.setContentsMargins(14, 14, 14, 14)
         li.setSpacing(10)
@@ -263,30 +264,31 @@ class VentanaNexus(QMainWindow):
         fila3.addWidget(self.b_orden, 1)
         fila3.addWidget(b4)
         li.addLayout(fila3)
-        cuerpo.addWidget(izq)
+        cuerpo.addWidget(izq, 3)
 
         # ---- centro
         centro = QVBoxLayout()
         centro.setSpacing(10)
-        cuerpo.addLayout(centro, 1)
+        cuerpo.addLayout(centro, 8)
         fila_n = QHBoxLayout()
         fila_n.setSpacing(12)
         self.deck_a = TarjetaDeck()
         self.deck_b = TarjetaDeck()
         for d in (self.deck_a, self.deck_b):
-            d.setFixedWidth(268)
+            d.setMinimumWidth(190)
+            d.setMaximumWidth(268)
         for d in (self.deck_a, self.deck_b):
             d.buscar.connect(self.motor.buscar)           # clic o arrastre sobre la onda del deck: salta a ese punto del tema
         self.nucleo = Nucleo()
-        fila_n.addWidget(self.deck_a)
-        fila_n.addWidget(self.nucleo, 1)
-        fila_n.addWidget(self.deck_b)
+        fila_n.addWidget(self.deck_a, 3)
+        fila_n.addWidget(self.nucleo, 5)
+        fila_n.addWidget(self.deck_b, 3)
         centro.addLayout(fila_n, 1)
         self.matriz = MatrizFusion()
-        self.matriz.setFixedHeight(204)
+        self.matriz.setMaximumHeight(204)
         centro.addWidget(self.matriz)
         self.linea = LineaMezcla()
-        self.linea.setFixedHeight(96)
+        self.linea.setMaximumHeight(96)
         self.linea.buscar.connect(self.motor.buscar_global)
         centro.addWidget(self.linea)
 
@@ -320,7 +322,8 @@ class VentanaNexus(QMainWindow):
         self.vol = QSlider(Qt.Orientation.Horizontal)
         self.vol.setRange(0, 100)
         self.vol.setValue(int(self.cfg.get("volumen", 90)))
-        self.vol.setFixedWidth(150)
+        self.vol.setMinimumWidth(70)
+        self.vol.setMaximumWidth(150)
         self.vol.valueChanged.connect(lambda v: setattr(self.motor, "volumen", (v / 100.0) ** 1.6))
         self.motor.volumen = (self.vol.value() / 100.0) ** 1.6
         self.motor._vol_act = self.motor.volumen

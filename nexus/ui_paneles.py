@@ -5,7 +5,7 @@ import math
 import time
 
 import numpy as np
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFontMetrics, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QWidget
 
@@ -59,7 +59,7 @@ class TarjetaDeck(QWidget):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setMinimumSize(250, 250)
+        self.setMinimumSize(190, 270)
         self.d = dict(pista=None, indice=0, rol="", pos=0.0, niveles=np.zeros(4), gan=np.zeros(4), activo=False, nota="")
         self._cache = {}
         self._drag = False
@@ -213,11 +213,14 @@ class TarjetaDeck(QWidget):
 
 # =====================================================================================================
 class MatrizFusion(QWidget):
+    def sizeHint(self) -> QSize:
+        return QSize(300, 204)
+
     """Cuatro carriles (batería, bajo, voz/melodía, ambiente) con la curva de cada tema: se ve cómo se reparten la fusión."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setMinimumHeight(190)
+        self.setMinimumHeight(150)
         self.d = dict(fusion=None, u=-1.0, titulo="", detalle="", col_sale=T.CYAN, col_entra=T.MAGENTA, calculando=False, cuenta="", mensaje="")
         self._t0 = time.perf_counter()
         self._cache_pm = None
@@ -339,12 +342,15 @@ class MatrizFusion(QWidget):
 
 # =====================================================================================================
 class LineaMezcla(QWidget):
+    def sizeHint(self) -> QSize:
+        return QSize(300, 96)
+
     """Toda la mezcla en una tira: temas con su onda, fusiones como puentes luminosos y el cabezal de reproducción."""
     buscar = Signal(float)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setMinimumHeight(96)
+        self.setMinimumHeight(80)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.bloques: list[dict] = []
         self.pistas: list = []
