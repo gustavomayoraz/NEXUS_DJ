@@ -14,15 +14,18 @@ from pathlib import Path
 import numpy as np
 from scipy import signal
 
-from .audio_io import a_mono, cargar_estereo, sonoridad_db
+from .audio_io import a_mono, bajo_db, cargar_estereo, sonoridad_db
 from . import basedatos
 from .config import SR, carpeta_datos
 
-VERSION = 3
+VERSION = 4
 SR_AN = 22050
 HOP = 512
 N_FFT = 2048
 OBJETIVO_DB = -14.0                    # sonoridad objetivo de cada tema
+BAJO_REF_DB = -18.3                   # nivel de «golpe» (bajo/bombo) de referencia, ya con la ganancia aplicada
+BAJO_PESO = 0.4                       # cuánto del desvío de golpe se corrige (0 = nada, 1 = igualar el golpe del todo)
+BAJO_TOPE_DB = 2.5                    # corrección máxima por golpe, en dB
 
 _CAMELOT_MAYOR = {0: "8B", 1: "3B", 2: "10B", 3: "5B", 4: "12B", 5: "7B", 6: "2B", 7: "9B", 8: "4B", 9: "11B", 10: "6B", 11: "1B"}
 _CAMELOT_MENOR = {0: "5A", 1: "12A", 2: "7A", 3: "2A", 4: "9A", 5: "4A", 6: "11A", 7: "6A", 8: "1A", 9: "8A", 10: "3A", 11: "10A"}
@@ -286,6 +289,10 @@ def analizar(ruta: str, y: "np.ndarray | None" = None, usar_cache: bool = True) 
         raise ValueError("El tema es demasiado corto para fusionarlo (menos de 8 s).")
     son = sonoridad_db(y)
     g = float(np.clip(OBJETIVO_DB - son, -12.0, 12.0)) if son > -60 else 0.0
+    if son > -60:                                                  # mismo nivel de golpe en todos los temas: se corrige parte del desvío de bajo/bombo
+        bj = bajo_db(y)
+        if bj > -80:
+            g = float(np.clip(g + np.clip(BAJO_PESO * (BAJO_REF_DB - (bj + g)), -BAJO_TOPE_DB, BAJO_TOPE_DB), -12.0, 12.0))
 
     # --- onda para dibujar (pico por 0,05 s); se hace ya mismo para poder soltar el audio completo
     paso = int(SR * 0.05)

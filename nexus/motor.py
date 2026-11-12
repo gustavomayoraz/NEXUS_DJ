@@ -20,7 +20,7 @@ from .audio_io import cargar_estereo
 from .config import AJUSTES_MEZCLA, SR
 from .memoria import EST_FUSION_MB, Guardia, calcular_perfil, estimar_analisis_mb
 from .fusion import VERSION_FUSION, Fusion, desempaquetar, desviacion_tempo, fusion_simple, limitador
-from .planificador import Plan, planificar
+from .planificador import SOLO_MIN, SOLO_OK, Plan, planificar
 
 try:                                                    # sounddevice puede faltar o no tener dispositivo: el motor sigue funcionando
     import sounddevice as sd
@@ -373,6 +373,10 @@ class Motor:
         return float(self.ajustes.get("i_estructura", 0.0)) >= 0.5
 
     def _fusion(self, a: Pista, b: Pista) -> Fusion | None:
+        if a in self.pistas and self.pistas.index(a) < self._indice_actual():        # par que ya sonó: se muestra la mezcla que de verdad sonó (p. ej. la ⚡)
+            h = self._hist.get((a.id, b.id))
+            if h is not None:
+                return h
         f = self._ya.get((a.id, b.id))
         if f is None:
             g = self.fusiones.get((a.id, b.id))
@@ -841,13 +845,18 @@ class Motor:
             if gen != self._gen or self._cerrando:
                 return
             A, B = a.analisis, b.analisis
-            t_ref = s_ini / SR + 1.0
             pos = self._ya_pos(a)
-            if pos is not None:                              # ya está sonando: hay que dejar tiempo para calcular
-                t_ref = max(t_ref, pos + max(self._t_ya_nat, self._t_ya_cap) * 1.3 + 6.0)
             tiempos = np.array([A.tiempo_compas(k) for k in range(A.n_compases)])
-            k0 = int(np.searchsorted(tiempos, t_ref))
-            plan = planificar(A, B, (8,), a_desde=k0, estructura=self._est(), voces=self._vz()) or planificar(A, B, (4,), a_desde=k0, estructura=self._est(), voces=self._vz())
+            comp = 240.0 / max(40.0, float(A.bpm))             # segundos que dura un compás
+            plan = None
+            for solo in (SOLO_OK, SOLO_MIN):                   # el tema suena solo un rato (cómodo; si no alcanza, el mínimo) antes de empezar a salir
+                t_ref = s_ini / SR + solo * comp
+                if pos is not None:                              # ya está sonando: hay que dejar tiempo para calcular
+                    t_ref = max(t_ref, pos + max(self._t_ya_nat, self._t_ya_cap) * 1.3 + 6.0)
+                k0 = int(np.searchsorted(tiempos, t_ref))
+                plan = planificar(A, B, (8,), a_desde=k0, estructura=self._est(), voces=self._vz()) or planificar(A, B, (4,), a_desde=k0, estructura=self._est(), voces=self._vz())
+                if plan is not None:
+                    break
             if plan is None:                                 # no queda lugar: queda el cruce simple al final del tema
                 return
             ca, cb = basedatos.clave_tema(a.ruta), basedatos.clave_tema(b.ruta)
@@ -1330,10 +1339,19 @@ class Motor:
         with self.lock:
             pistas = list(self.pistas)
         s_ini = 0
+        c = self.cur
+        ia = self._indice_actual() if c is not None else 0
+        ci = ia if (c is not None and c.tipo == "solo") else -1
         for i, p in enumerate(pistas):
             sig = pistas[i + 1] if i + 1 < len(pistas) else None
-            fus = self._fusion(p, sig) if sig is not None else None
+            if i == ci and c.s1 > c.s0:                       # el tema que suena: se dibuja el tramo real (de dónde entró a dónde sale), no el teórico
+                s_ini = c.s0
+            fus = (self._fusion_desde(p, sig, s_ini) if i >= ia else self._fusion(p, sig)) if sig is not None else None      # igual que la línea real: la mezcla tiene que quedar adelante de donde entra el tema
+            if fus is not None and s_ini >= fus.a_inicio - int(0.25 * SR):
+                fus = None
             fin = fus.a_inicio if fus else p.n_muestras
+            if i == ci and c.s1 > c.s0:
+                fin = c.s1
             dur = max(0, fin - s_ini) / SR
             res.append(dict(tipo="solo", i=i, t0=t, t1=t + dur, s0=s_ini / SR, s1=fin / SR))
             t += dur

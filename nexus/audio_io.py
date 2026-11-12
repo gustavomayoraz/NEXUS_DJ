@@ -64,6 +64,18 @@ def sonoridad_db(y: np.ndarray, sr: int = SR) -> float:
     return float(10 * np.log10(util.mean() + 1e-12))
 
 
+def bajo_db(y: np.ndarray, sr: int = SR) -> float:
+    """Nivel del «golpe» (bombo y bajo, 40–120 Hz) en los tramos fuertes del tema: percentil 90 de bloques de 1 s, en dB."""
+    m = a_mono(y)
+    n = m.size // sr
+    if n < 2:
+        return -70.0
+    sos = signal.butter(4, [40.0, 120.0], "bandpass", fs=sr, output="sos")
+    f = signal.sosfilt(sos, m[:n * sr])
+    b = (f.reshape(n, sr) ** 2).mean(axis=1)
+    return float(10 * np.log10(np.percentile(b, 90) + 1e-12))
+
+
 class AudioParcial:
     """Un trozo de un tema que se comporta como el tema entero para `_recorte` (shape y audio[:, a:b]); fuera del trozo da ceros.
     Sirve para fusionar sin decodificar los dos temas completos (mucha menos memoria y tiempo)."""

@@ -18,6 +18,7 @@ from .fusion import SIGLAS_NATURAL
 from .config import EXTENSIONES, SR, ajustes_mezcla, guardar_config, leer_config
 from .motor import Motor
 from .planificador import orden_cola
+from .tecla_global import TeclaGlobal
 from .ui_ajustes import DialogoAjustes
 from .ui_lista import ListaCola, expandir_rutas
 from .ui_nucleo import EstadoNucleo, N_BANDAS, Nucleo
@@ -303,7 +304,7 @@ class VentanaNexus(QMainWindow):
         self.b_ya = QPushButton("⚡  Mezclar")
         self.b_ya.setObjectName("primario")
         self.b_ya.setMinimumHeight(46)
-        self.b_ya.setToolTip("Mezcla el tema que suena con el siguiente desde donde va: busca un punto cercano, calcula la mezcla y la mete (el tema sigue sonando mientras tanto)")
+        self.b_ya.setToolTip("Mezcla el tema que suena con el siguiente desde donde va: busca un punto cercano, calcula la mezcla y la mete (el tema sigue sonando mientras tanto). Atajo: F2 (funciona aunque NEXUS esté minimizado)")
         self.b_ya.clicked.connect(self._fusionar_ya)
         self.b_bien = QPushButton("👍")
         self.b_mal = QPushButton("👎")
@@ -334,6 +335,10 @@ class VentanaNexus(QMainWindow):
 
         QShortcut(QKeySequence(Qt.Key.Key_Space), self, activated=self._alternar)
         QShortcut(QKeySequence("F"), self, activated=self._fusionar_ya)
+        self._tecla = TeclaGlobal(self)                          # F2 mezcla desde cualquier programa, aunque NEXUS esté minimizado
+        self._tecla.pulsada.connect(self._fusionar_ya)
+        if not self._tecla.activa:                               # si otro programa (p. ej. AutoMix) ya tiene F2, al menos funciona con la ventana en primer plano
+            QShortcut(QKeySequence(Qt.Key.Key_F2), self, activated=self._fusionar_ya)
         QShortcut(QKeySequence("N"), self, activated=self.motor.siguiente)
         QShortcut(QKeySequence("P"), self, activated=self.motor.anterior)
 
@@ -773,6 +778,10 @@ class VentanaNexus(QMainWindow):
 
     def closeEvent(self, e) -> None:
         self._guardar()
+        try:
+            self._tecla.cerrar()
+        except Exception:                                    # noqa: BLE001
+            pass
         self.timer.stop()
         self.motor.cerrar()
         super().closeEvent(e)

@@ -85,6 +85,9 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
     para caer en una frase.
     Con `estructura`, además se premia que la fusión empiece y termine en cambios de sección y se castiga pisar un estribillo con otro."""
     nA, nB = A.n_compases, B.n_compases
+    if a_desde is not None:                                           # ⚡ mezcla rápida: aun así A tiene que terminar de entrar y sonar solo un rato
+        aud_a = np.where(A.energia > 0.06)[0]
+        a_desde = max(int(a_desde), (int(aud_a[0]) if len(aud_a) else 0) + int(np.ceil(_tope_L(A, (16, 8)) * 1.25)) + SOLO_MIN + 4)
     k = _factor_tempo(A.bpm, B.bpm)
     razon_t = abs(np.log2(B.bpm * k / A.bpm))
     cum_a = np.vstack([np.zeros((1, 12)), np.cumsum(A.chroma, axis=0)])

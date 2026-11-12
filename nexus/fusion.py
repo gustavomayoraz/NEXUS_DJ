@@ -1015,7 +1015,7 @@ def _viz(ren_a, ren_b, gan, lin_a, lin_b, ra, rb, dr, Nout):
 
 
 # ------------------------------------------------------------------------------------------- guardado en la base de datos
-VERSION_FUSION = 5                         # súbela si cambia el algoritmo de fusión (las guardadas con otra versión se ignoran)
+VERSION_FUSION = 6                         # súbela si cambia el algoritmo de fusión (las guardadas con otra versión se ignoran)
 
 
 def empaquetar(f: Fusion) -> bytes:
