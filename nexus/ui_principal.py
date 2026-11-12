@@ -430,7 +430,7 @@ class VentanaNexus(QMainWindow):
 
     def _ordenar_lista(self, forzar: bool) -> None:
         """Ordena la cola como una tabla: BPM de menor a mayor, después tonalidad y nombre; los temas sin analizar, al final.
-        Si suena un tema solo se ordena lo que viene después de él."""
+        Si suena un tema solo se ordena lo que viene después de él (y, si se reordena sola, tampoco los 2 siguientes: A, B y el próximo no cambian)."""
         self._t_orden = time.perf_counter()
         self._firma_orden = self._firma_actual()
         pistas = self.lista.pistas()
@@ -443,6 +443,8 @@ class VentanaNexus(QMainWindow):
             if ref in pistas:
                 k = pistas.index(ref)
                 fijas, pistas = pistas[:k + 1], pistas[k + 1:]
+                if not forzar:                                                   # al reordenarse sola, tampoco se mueven los 2 que siguen (el B y el próximo)
+                    fijas, pistas = fijas + pistas[:2], pistas[2:]
         datos = [{"bpm": (p.analisis.bpm if p.analisis else None), "cam": (p.analisis.camelot if p.analisis else None), "nombre": p.nombre,
                   "en": self._energia_tema(p)} for p in pistas]
         idx = orden_cola(datos, arco=float(self.motor.ajustes.get("i_arco", 0.0)) >= 0.5)
