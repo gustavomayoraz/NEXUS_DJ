@@ -675,12 +675,21 @@ class VentanaNexus(QMainWindow):
                  1: dict(pista=None, indice=1, rol="", pos=0.0, niveles=np.zeros(4), gan=np.zeros(4), activo=False, nota="Deck B\nlibre")}
         pistas = m.pistas
 
-        def marcas(idx):
-            """Rangos (segundos del tema) donde está programado el enganche: hacia el siguiente (sale) y desde el anterior (entra)."""
+        def marcas(idx, rol=""):
+            """Rango (segundos del tema) del enganche que le corresponde a ese deck: si está sonando, el que sale hacia el siguiente;
+            si todavía no sonó, el que entra desde el anterior. El resto de la onda queda libre para moverse con el mouse."""
             res = []
             if not (0 <= idx < len(pistas)):
                 return res
+            if rol == "SALIENDO":
+                quiere = "sale"
+            elif rol == "ENTRANDO":
+                quiere = "entra"
+            else:
+                quiere = "sale" if idx <= m._indice_actual() else "entra"
             for a, b, tipo_m in ((idx, idx + 1, "sale"), (idx - 1, idx, "entra")):
+                if tipo_m != quiere:
+                    continue
                 if a < 0 or b >= len(pistas):
                     continue
                 f = m._ya.get((pistas[a].id, pistas[b].id))
@@ -701,7 +710,7 @@ class VentanaNexus(QMainWindow):
                 return
             niv = self._suavizar(idx % 2, np.asarray(niv, np.float32), dt)
             slots[idx % 2] = dict(pista=pista, indice=idx, rol=rol, pos=pos, niveles=niv, gan=gan, activo=activo, nota="",
-                                  siglas=siglas or ("BAT", "BAJ", "VOZ", "AMB"), marcas=marcas(idx))
+                                  siglas=siglas or ("BAT", "BAJ", "VOZ", "AMB"), marcas=marcas(idx, rol))
 
         if snap["tipo"] is None:
             for i in range(min(2, len(pistas))):

@@ -15,6 +15,16 @@ from .fusion import disposicion, ventana_bajo
 PASO = 0.5                                                   # segundos por paso de cada control
 
 
+# slider bien visible sobre el fondo oscuro: riel claro, tramo recorrido en celeste y perilla blanca con borde de color
+ESTILO_SLIDER = (
+    "QSlider::groove:horizontal { height: 8px; background: #5b6a99; border-radius: 4px; }"
+    "QSlider::sub-page:horizontal { background: #2fd4ff; border-radius: 4px; }"
+    "QSlider::add-page:horizontal { background: #5b6a99; border-radius: 4px; }"
+    "QSlider::handle:horizontal { background: #ffffff; border: 3px solid #ffd166; width: 16px; height: 16px; margin: -7px 0; border-radius: 11px; }"
+    "QSlider::handle:horizontal:hover { background: #ffd166; }"
+)
+
+
 class VistaReparto(QWidget):
     """Dibujo del reparto de la fusión: rampa de entrada · pausa · rampa de salida (según los valores elegidos)."""
 
@@ -79,6 +89,7 @@ class FilaControl(QWidget):
         self.clave = clave
         lo, hi = LIMITES_AJUSTES[clave]
         self.sl = QSlider(Qt.Orientation.Horizontal)
+        self.sl.setStyleSheet(ESTILO_SLIDER)
         self.sl.setRange(int(lo / PASO), int(hi / PASO))
         self.val = QLabel()
         self.val.setMinimumWidth(64)
@@ -146,6 +157,7 @@ class DialogoAjustes(QDialog):
         ti0 = QLabel("Dónde empieza la mezcla")
         ti0.setStyleSheet("font-weight:700;")
         self.sl_ini = QSlider(Qt.Orientation.Horizontal)
+        self.sl_ini.setStyleSheet(ESTILO_SLIDER)
         self.sl_ini.setRange(0, 100)
         self.sl_ini.setMinimumWidth(220)
         self.val_ini = QLabel()
