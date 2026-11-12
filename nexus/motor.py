@@ -97,6 +97,7 @@ class Motor:
         os.environ["NEXUS_HILOS"] = str(self.perfil.hilos)         # los procesos hijo lo heredan (hilos dentro de cada análisis)
         self.guardia = Guardia(self.perfil.reserva_mb)             # frena el trabajo en segundo plano si queda poca RAM libre
         self._max_an = self.perfil.trab_an
+        self._an_calentado = False                                # se vuelve True cuando un análisis termina bien
         self._prio_pend = False                                   # hay mezclas de los próximos temas sin preparar: el resto espera
         self._prio_ids: set = set()
         self._lej_fu: set = set()                                 # mezclas lejanas que están calculándose ahora (máximo una a la vez)
@@ -192,6 +193,11 @@ class Motor:
             return (q.id not in self._urgentes, k < i0, abs(k - i0))
         return min(self._pend_an, key=clave)
 
+    def _limite_an(self) -> int:
+        """Análisis a la vez. Hasta que uno termine bien se hace de a uno: la primera vez, los procesos compilan (numba) y
+        guardan su caché; si dos lo hicieran juntos podían pisarse y caerse."""
+        return self._max_an if self._an_calentado else 1
+
     def _despachar_an(self) -> None:
         """Mantiene ocupados los procesos de análisis, pero sin encolar todo de golpe: así el orden se decide al momento
         (con 400 temas en la cola, el que suena y los que siguen se analizan primero)."""
@@ -199,7 +205,7 @@ class Motor:
             if time.time() < self._ya_hasta:                 # se está calculando la mezcla del botón ⚡: tiene toda la PC
                 return
             with self._lock_an:
-                if self._en_vuelo >= self._max_an or not self._pend_an:
+                if self._en_vuelo >= self._limite_an() or not self._pend_an:
                     return
                 p = self._elegir_an()
                 if self._prio_pend and p.id not in self._prio_ids and p.id not in self._urgentes:
@@ -224,6 +230,7 @@ class Motor:
                     continue
                 p.estado, p.error = "error", str(e)
                 continue
+            self._evento(f"análisis enviado: {p.ruta}")
             fut.add_done_callback(lambda f, p=p: self._analisis_listo(p, f))
 
     def _rehacer_pool(self, cual: str, e: Exception) -> bool:
@@ -236,7 +243,8 @@ class Motor:
                 viejo, self.pool_an = self.pool_an, _crear_pool(self._max_an, self.perfil.tareas_por_hijo)
             else:
                 viejo, self.pool_fu = self.pool_fu, _crear_pool(self.perfil.trab_fu, self.perfil.tareas_por_hijo)
-            viejo.shutdown(wait=False, cancel_futures=True)
+            # se cierra en otro hilo: hacerlo desde el hilo que atiende al propio pool lo dejaba bloqueado para siempre
+            threading.Thread(target=lambda: viejo.shutdown(wait=False, cancel_futures=True), daemon=True).start()
         except Exception:                                    # noqa: BLE001
             return False
         return True
@@ -247,7 +255,9 @@ class Motor:
         try:
             p.analisis = Analisis.de_dict(fut.result())
             p.estado = "listo"
+            self._an_calentado = True
         except Exception as e:                               # noqa: BLE001
+            self._evento(f"análisis falló ({p.ruta}): {e!r}")
             self._rehacer_pool("an", e)
             n = getattr(p, "_reint", 0)
             if n < 2 and not self._cerrando:                 # fallo pasajero (memoria, disco ocupado…): se reintenta más tarde

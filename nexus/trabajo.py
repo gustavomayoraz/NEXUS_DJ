@@ -10,6 +10,15 @@ import sys
 
 def iniciar_hijo() -> None:
     """Baja la prioridad del proceso hijo para que no le robe CPU al audio."""
+    _log_hijo("proceso hijo iniciado")
+    try:                                            # si el proceso muere por un fallo nativo, deja dónde murió
+        import faulthandler
+        from .config import carpeta_datos
+        global _ARCH_FALLO
+        _ARCH_FALLO = open(carpeta_datos() / "hijos_fallos.log", "a", encoding="utf-8")
+        faulthandler.enable(file=_ARCH_FALLO, all_threads=True)
+    except Exception:
+        pass
     try:
         if sys.platform == "win32":
             import ctypes
@@ -41,12 +50,33 @@ def _limpiar() -> None:
     gc.collect()
 
 
+def _log_hijo(texto: str) -> None:
+    """Deja una línea en datos/hijos.log (diagnóstico de los procesos de análisis)."""
+    try:
+        import time
+        from .config import carpeta_datos
+        with open(carpeta_datos() / "hijos.log", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} pid={os.getpid()} {texto}\n")
+    except Exception:
+        pass
+
+
 def analizar_ruta(ruta: str) -> dict:
     """Analiza un tema y devuelve el resultado como dict (serializable)."""
+    import time
+    import traceback
+    t0 = time.time()
+    _log_hijo(f"empieza {os.path.basename(ruta)}")
     try:
-        return _analizar_ruta(ruta)
+        r = _analizar_ruta(ruta)
+        _log_hijo(f"listo {os.path.basename(ruta)} en {time.time() - t0:.1f}s")
+        return r
     except MemoryError as e:                       # mensaje claro (un MemoryError no trae texto) para que el motor lo reintente
+        _log_hijo(f"SIN MEMORIA {os.path.basename(ruta)}")
         raise RuntimeError("sin memoria suficiente para analizar el tema") from e
+    except BaseException:
+        _log_hijo(f"FALLÓ {os.path.basename(ruta)}:\n{traceback.format_exc()}")
+        raise
     finally:
         _limpiar()
 

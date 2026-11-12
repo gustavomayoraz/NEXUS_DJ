@@ -13,6 +13,9 @@ import traceback
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent
+import os
+# caché del compilador (numba) propio de NEXUS, dentro de libs: los procesos hijo lo heredan
+os.environ.setdefault("NUMBA_CACHE_DIR", str(RAIZ / "libs" / "numba_cache"))
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
