@@ -54,7 +54,7 @@ class Perfil:
     hilos: int                 # hilos dentro de cada análisis (filtros de mediana)
     trab_an: int               # procesos que analizan temas a la vez
     trab_fu: int               # procesos que calculan mezclas a la vez
-    tareas_por_hijo: int       # cada proceso hijo se renueva tras tantas tareas (devuelve la memoria al sistema)
+    tareas_por_hijo: int       # cada proceso hijo se renueva tras tantas tareas (devuelve la memoria al sistema; cada arranque cuesta 5–7 s de imports, por eso son varias)
     reserva_mb: int            # memoria libre que siempre se deja tranquila al sistema y a los demás programas
     audio_siguientes: int      # temas siguientes que se mantienen decodificados en memoria
 
@@ -63,12 +63,12 @@ def calcular_perfil() -> Perfil:
     _, total = memoria_mb()
     nuc = max(1, os.cpu_count() or 2)
     if total < 6000:
-        return Perfil("mínimo", total, nuc, 1, 1, 1, 3, 1000, 1)
+        return Perfil("mínimo", total, nuc, 1, 1, 1, 6, 1000, 1)
     if total < 12000:
-        return Perfil("básico", total, nuc, max(1, min(2, nuc // 2)), 1, 1, 4, 1300, 1)
+        return Perfil("básico", total, nuc, max(1, min(2, nuc // 2)), 1, 1, 8, 1300, 1)
     if total < 20000:
-        return Perfil("medio", total, nuc, max(1, min(3, nuc // 2)), 2 if nuc >= 6 else 1, 1, 6, 1800, 2)
-    return Perfil("alto", total, nuc, max(1, min(4, nuc // 2)), max(1, min(3, nuc // 2)), 2 if nuc >= 6 else 1, 8, 2500, 2)
+        return Perfil("medio", total, nuc, max(1, min(3, nuc // 2)), 2 if nuc >= 6 else 1, 1, 12, 1800, 2)
+    return Perfil("alto", total, nuc, max(1, min(4, nuc // 2)), max(1, min(3, nuc // 2)), 2 if nuc >= 6 else 1, 16, 2500, 2)
 
 
 class Guardia:

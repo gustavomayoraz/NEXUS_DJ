@@ -255,6 +255,8 @@ def _hpss_rapido(S: np.ndarray, kernel: int = 17, power: float = 2.0, margin: fl
     from scipy import ndimage
     import librosa
     hilos = max(1, int(os.environ.get("NEXUS_HILOS", "2")))
+    from . import mediana_rapida as _mr
+    rapida = _mr.disponible and kernel == _mr.K and not os.environ.get("NEXUS_SIN_RAPIDA")
     n_t = S.shape[1]
     h = kernel // 2
     mh = np.empty_like(S)
@@ -263,8 +265,12 @@ def _hpss_rapido(S: np.ndarray, kernel: int = 17, power: float = 2.0, margin: fl
     def trabajo(c0: int) -> None:
         c1 = min(n_t, c0 + bloque)
         a, b = max(0, c0 - h), min(n_t, c1 + h)                                   # columnas vecinas que el filtro necesita
-        arm = ndimage.median_filter(S[:, a:b], size=(1, kernel), mode="reflect")[:, c0 - a:c1 - a]
-        per = ndimage.median_filter(S[:, c0:c1], size=(kernel, 1), mode="reflect")
+        if rapida:                                                                 # misma mediana, compilada (≈10 veces más rápida)
+            arm = _mr.mediana_tiempo(S[:, a:b])[:, c0 - a:c1 - a]
+            per = _mr.mediana_frecuencia(S[:, c0:c1])
+        else:
+            arm = ndimage.median_filter(S[:, a:b], size=(1, kernel), mode="reflect")[:, c0 - a:c1 - a]
+            per = ndimage.median_filter(S[:, c0:c1], size=(kernel, 1), mode="reflect")
         mh[:, c0:c1] = librosa.util.softmask(arm, per * margin, power=power)
         mp[:, c0:c1] = librosa.util.softmask(per, arm * margin, power=power)
 
