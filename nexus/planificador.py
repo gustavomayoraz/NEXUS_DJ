@@ -82,7 +82,7 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
 
     Con `a_desde` (compás de A), la fusión tiene que empezar en ese compás o después (se prefiere lo más cercano):
     sirve para mezclar "desde donde va" el tema. Si no queda lugar para ninguna fusión, devuelve None.
-    Con `cerca` (solo junto a `a_desde`, para el ⚡), la mezcla se busca lo más pegada posible a ese compás (unos 12 compases como mucho), sin exigir
+    Con `cerca` (solo junto a `a_desde`, para el ⚡), la mezcla se busca lo más pegada posible a ese compás (unos 5 compases como mucho), sin exigir
     el solo mínimo previo: el usuario pidió mezclar ya.
     Con `inicio` (0..1), la fusión empieza en ese punto de A (por ejemplo 0.5 = a la mitad del tema), con un margen de ±4 compases
     para caer en una frase.
@@ -134,7 +134,7 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
         a_fin = min(A.ultimo_compas - L, nA - L - 2)
         obj = None
         if a_desde is not None:
-            a_fin = min(a_fin, a_ini + (12 if cerca else 32))      # cerca de donde va: ⚡ no más de ~12 compases adelante, el resto ~32
+            a_fin = min(a_fin, a_ini + (5 if cerca else 32))      # cerca de donde va: ⚡ no más de ~12 compases adelante, el resto ~32
         elif obj_a is not None and a_fin >= 0:                     # el usuario eligió dónde empieza la mezcla: ±4 compases alrededor de ese punto
             obj = int(min(max(0, obj_a), a_fin))
             a_ini, a_fin = max(0, obj - 4), min(a_fin, obj + 4)
@@ -178,7 +178,7 @@ def planificar(A: Analisis, B: Analisis, largos: tuple[int, ...] = (16, 8), forz
         elif a_desde is None:
             pos_a = 1.0 * (ia / nA)[:, None] + np.zeros((1, len(ib)))
         else:                                                      # lo más cerca posible del punto actual
-            pos_a = -(0.15 if cerca else 0.08) * (ia - a_ini)[:, None] + np.zeros((1, len(ib)))
+            pos_a = -(0.4 if cerca else 0.08) * (ia - a_ini)[:, None] + np.zeros((1, len(ib)))
         pos_b0 = 0.5 * (b_min == ib)[None, :] + np.zeros((len(ia), 1))
         fr_a = 0.6 * (((ia - pa) % 8) == 0)[:, None] + np.zeros((1, len(ib)))
         fr_b = 0.5 * (((ib - pb) % 8) == 0)[None, :] + np.zeros((len(ia), 1))

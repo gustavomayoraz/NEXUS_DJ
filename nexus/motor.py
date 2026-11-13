@@ -1100,7 +1100,7 @@ class Motor:
         plan = None
         est = self._t_ya_nat
         for _ in range(2):
-            t_min = pos + (est * 1.15 + 3.5) * (1.0 + 0.4 * intento)     # lo justo para calcularla: la mezcla entra lo más pegada posible al pedido
+            t_min = pos + (est * 1.05 + 1.5) * (1.0 + 0.5 * intento)     # lo justo para calcularla: la mezcla entra en el primer compás posible; si no llega, reintenta con más margen
             k0 = int(np.searchsorted(tiempos, t_min))
             plan = planificar(A, B, (8,), a_desde=k0, estructura=self._est(), voces=self._vz(), cerca=True) or planificar(A, B, (4,), a_desde=k0, estructura=self._est(), voces=self._vz(), cerca=True)
             if plan is None:
